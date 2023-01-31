@@ -51,22 +51,22 @@ func TestParse(t *testing.T) {
 		},
 		{
 			s:    "Mar 1950",
-			alts: []string{"mar 1950", "MAR 1950", "Q1 1950", "jan 1950", "JAN 1950"},
+			alts: []string{"mar 1950", "MAR 1950", "Q1 1950", "1950Q1", "jan 1950", "JAN 1950"},
 			want: &YearQuarter{Y: 1950, Q: 1},
 		},
 		{
 			s:    "Jun 1950",
-			alts: []string{"jun 1950", "JUN 1950", "Q2 1950", "apr 1950", "APR 1950"},
+			alts: []string{"jun 1950", "JUN 1950", "Q2 1950", "1950Q2", "apr 1950", "APR 1950"},
 			want: &YearQuarter{Y: 1950, Q: 2},
 		},
 		{
 			s:    "Sep 1950",
-			alts: []string{"sep 1950", "SEP 1950", "Q3 1950", "jul 1950", "JUL 1950"},
+			alts: []string{"sep 1950", "SEP 1950", "Q3 1950", "1950Q3", "jul 1950", "JUL 1950"},
 			want: &YearQuarter{Y: 1950, Q: 3},
 		},
 		{
 			s:    "Dec 1950",
-			alts: []string{"dec 1950", "DEC 1950", "Q4 1950", "oct 1950", "OCT 1950"},
+			alts: []string{"dec 1950", "DEC 1950", "Q4 1950", "1950Q4", "oct 1950", "OCT 1950"},
 			want: &YearQuarter{Y: 1950, Q: 4},
 		},
 	}

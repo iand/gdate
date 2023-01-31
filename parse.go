@@ -7,14 +7,15 @@ import (
 )
 
 var (
-	reYear       = regexp.MustCompile(`^\d{4}$`)
-	reBeforeYear = regexp.MustCompile(`(?i)^bef(?:.|ore)?\s+(\d{4})\s*$`)
-	reAfterYear  = regexp.MustCompile(`(?i)^aft(?:.|er)?\s+(\d{4})\s*$`)
-	reAboutYear  = regexp.MustCompile(`(?i)^(?:abt|abt.|about)?\s+(\d{4})\s*$`)
-	reMarQuarter = regexp.MustCompile(`(?i)^(?:mar|mar.|march|q1|jan)?\s+(\d{4})\s*$`)
-	reJunQuarter = regexp.MustCompile(`(?i)^(?:jun|jun.|june|q2|apr)?\s+(\d{4})\s*$`)
-	reSepQuarter = regexp.MustCompile(`(?i)^(?:sep|sep.|september|q3|jul)?\s+(\d{4})\s*$`)
-	reDecQuarter = regexp.MustCompile(`(?i)^(?:dec|dec.|december|q4|oct)?\s+(\d{4})\s*$`)
+	reYear        = regexp.MustCompile(`^\d{4}$`)
+	reBeforeYear  = regexp.MustCompile(`(?i)^bef(?:.|ore)?\s+(\d{4})\s*$`)
+	reAfterYear   = regexp.MustCompile(`(?i)^aft(?:.|er)?\s+(\d{4})\s*$`)
+	reAboutYear   = regexp.MustCompile(`(?i)^(?:abt|abt.|about)?\s+(\d{4})\s*$`)
+	reMarQuarter  = regexp.MustCompile(`(?i)^(?:mar|mar.|march|q1|jan)?\s+(\d{4})\s*$`)
+	reJunQuarter  = regexp.MustCompile(`(?i)^(?:jun|jun.|june|q2|apr)?\s+(\d{4})\s*$`)
+	reSepQuarter  = regexp.MustCompile(`(?i)^(?:sep|sep.|september|q3|jul)?\s+(\d{4})\s*$`)
+	reDecQuarter  = regexp.MustCompile(`(?i)^(?:dec|dec.|december|q4|oct)?\s+(\d{4})\s*$`)
+	reQuarterPost = regexp.MustCompile(`(?i)^(\d{4})\s*q([1-4])\s*$`)
 )
 
 var dateFormats = []string{"_2 Jan 2006", "_2 January 2006", "_2 Jan, 2006", "_2 January, 2006", "January _2 2006", "Jan _2 2006", "Jan _2, 2006"}
@@ -140,6 +141,23 @@ func (p *Parser) Parse(s string) (Date, error) {
 		return &YearQuarter{
 			Y: y,
 			Q: 4,
+		}, nil
+
+	}
+
+	m = reQuarterPost.FindStringSubmatch(s)
+	if len(m) > 1 {
+		y, err := strconv.Atoi(m[1])
+		if err != nil {
+			return nil, err
+		}
+		q, err := strconv.Atoi(m[2])
+		if err != nil {
+			return nil, err
+		}
+		return &YearQuarter{
+			Y: y,
+			Q: q,
 		}, nil
 
 	}
