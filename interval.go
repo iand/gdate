@@ -69,6 +69,22 @@ func AsYearsInterval(in Interval) (*YearsInterval, bool) {
 	return nil, false
 }
 
+// AsPreciseInterval returns the interval as a PreciseInterval and true if possible, false if it is not possible to convert.
+func AsPreciseInterval(in Interval) (*PreciseInterval, bool) {
+	if pi, ok := in.(*PreciseInterval); ok {
+		return pi, true
+	}
+	if ymder, ok := in.(interface{ YMD() (int, int, int) }); ok {
+		y, m, d := ymder.YMD()
+		return &PreciseInterval{
+			Y: y,
+			M: m,
+			D: d,
+		}, true
+	}
+	return nil, false
+}
+
 type PreciseInterval struct {
 	Y, M, D int
 }
@@ -102,6 +118,18 @@ func (p *PreciseInterval) Precise() string {
 
 func (p *PreciseInterval) Years() int {
 	return p.Y
+}
+
+func (p *PreciseInterval) Months() int {
+	return p.Y*12 + p.M
+}
+
+func (p *PreciseInterval) ApproxDays() int {
+	return p.Y*365 + p.M*30 + p.D
+}
+
+func (p *PreciseInterval) YMD() (int, int, int) {
+	return p.Y, p.M, p.D
 }
 
 func (p *PreciseInterval) Rough() string {

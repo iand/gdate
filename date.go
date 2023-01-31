@@ -68,7 +68,7 @@ func (u *Unknown) SortsBefore(d Date) bool {
 // Precise is a date with a known year, month and day. No calendar is assumed for this date.
 type Precise struct {
 	Y int
-	M int
+	M int // 1-12 like go's time package
 	D int
 }
 
@@ -118,6 +118,13 @@ func (p *Precise) SortsBefore(d Date) bool {
 
 func (p *Precise) Year() int {
 	return p.Y
+}
+
+func (p *Precise) DateInYear(long bool) string {
+	if long {
+		return fmt.Sprintf("%d %s", p.D, longMonthNames[p.M])
+	}
+	return fmt.Sprintf("%d %s", p.D, shortMonthNames[p.M])
 }
 
 // Year is a date for which only the year is known or a period of time that may span an entire year.
@@ -383,4 +390,19 @@ var shortMonthNames = []string{
 	10: "Oct",
 	11: "Nov",
 	12: "Dec",
+}
+
+var longMonthNames = []string{
+	1:  "January",
+	2:  "February",
+	3:  "March",
+	4:  "April",
+	5:  "May",
+	6:  "June",
+	7:  "July",
+	8:  "August",
+	9:  "September",
+	10: "October",
+	11: "November",
+	12: "December",
 }
