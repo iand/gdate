@@ -13,6 +13,9 @@ type Date interface {
 
 // SortsBefore reports whether a should sort before b chronologically
 func SortsBefore(a, b Date) bool {
+	if a == nil || b == nil {
+		return false
+	}
 	return a.SortsBefore(b)
 }
 
@@ -105,8 +108,19 @@ func (p *Precise) SortsBefore(d Date) bool {
 		if p.Y != td.Y {
 			return p.Y < td.Y
 		}
+		if p.M != ((td.Q-1)*3 + 1) {
+			return p.M < ((td.Q-1)*3 + 1)
+		}
 		// Sorts after the start of the quarter
-		return (td.Q-1)*3 >= p.M
+		return p.D == 0
+	case *MonthYear:
+		if p.Y != td.Y {
+			return p.Y < td.Y
+		}
+		if p.M != td.M {
+			return p.M < td.M
+		}
+		return p.D == 0
 	case *EstimatedYear:
 		return p.Y < td.Y
 
@@ -142,29 +156,38 @@ func (y *Year) Occurrence() string {
 }
 
 func (y *Year) SortsBefore(d Date) bool {
-	switch td := d.(type) {
-	case *Precise:
-		return y.Y <= td.Y
-	case *Year:
-		return y.Y < td.Y
-	case *BeforeYear:
-		return y.Y < td.Y
-	case *AfterYear:
-		return y.Y <= td.Y
-	case *AboutYear:
-		return y.Y < td.Y
-	case *YearQuarter:
-		return y.Y <= td.Y
-	case *EstimatedYear:
-		return y.Y < td.Y
-	case *Unknown:
-		return true
-	}
-	return false
+	// sorts like it is just before the first day of the year
+	p := Precise{Y: y.Y, M: 1, D: 0}
+	return p.SortsBefore(d)
 }
 
 func (y *Year) Year() int {
 	return y.Y
+}
+
+// Year is a date for which only the month and year is known or a period of time that may span an entire month.
+// It sorts before any date with a higher numeric year.
+type MonthYear struct {
+	M int
+	Y int
+}
+
+func (m *MonthYear) String() string {
+	return fmt.Sprintf("%s %04d", shortMonthNames[m.M], m.Y)
+}
+
+func (m *MonthYear) Occurrence() string {
+	return fmt.Sprintf("in %s %04d", shortMonthNames[m.M], m.Y)
+}
+
+func (m *MonthYear) SortsBefore(d Date) bool {
+	// sorts like it is just before first of the month
+	p := Precise{Y: m.Y, M: m.M, D: 0}
+	return p.SortsBefore(d)
+}
+
+func (m *MonthYear) Year() int {
+	return m.Y
 }
 
 // BeforeYear represents a date that is before the start of a specific year.
@@ -196,6 +219,8 @@ func (b *BeforeYear) SortsBefore(d Date) bool {
 	case *YearQuarter:
 		return b.Y <= td.Y
 	case *EstimatedYear:
+		return b.Y <= td.Y
+	case *MonthYear:
 		return b.Y <= td.Y
 	case *Unknown:
 		return true
@@ -232,6 +257,8 @@ func (a *AfterYear) SortsBefore(d Date) bool {
 		return a.Y < td.Y
 	case *EstimatedYear:
 		return a.Y < td.Y
+	case *MonthYear:
+		return a.Y < td.Y
 	case *Unknown:
 		return true
 	}
@@ -266,6 +293,8 @@ func (a *AboutYear) SortsBefore(d Date) bool {
 	case *YearQuarter:
 		return a.Y <= td.Y
 	case *EstimatedYear:
+		return a.Y < td.Y
+	case *MonthYear:
 		return a.Y < td.Y
 	case *Unknown:
 		return true
@@ -311,27 +340,9 @@ func (y *YearQuarter) Occurrence() string {
 }
 
 func (y *YearQuarter) SortsBefore(d Date) bool {
-	switch td := d.(type) {
-	case *Precise:
-		if y.Y != td.Y {
-			return y.Y < td.Y
-		}
-		// Sorts before the start of the quarter
-		return td.M > (y.Q-1)*3
-	case *Year:
-		return y.Y < td.Y
-	case *BeforeYear:
-		return y.Y < td.Y
-	case *AfterYear:
-		return y.Y <= td.Y
-	case *AboutYear:
-		return y.Y < td.Y
-	case *EstimatedYear:
-		return y.Y < td.Y
-	case *Unknown:
-		return true
-	}
-	return false
+	// sorts like it is just before the first day of the quarter
+	p := Precise{Y: y.Y, M: 1 + (y.Q-1)*3, D: 0}
+	return p.SortsBefore(d)
 }
 
 func (y *YearQuarter) Year() int {
@@ -366,6 +377,8 @@ func (e *EstimatedYear) SortsBefore(d Date) bool {
 	case *YearQuarter:
 		return e.Y <= td.Y
 	case *EstimatedYear:
+		return e.Y < td.Y
+	case *MonthYear:
 		return e.Y < td.Y
 	case *Unknown:
 		return true

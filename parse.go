@@ -6,16 +6,49 @@ import (
 	"time"
 )
 
+const (
+	janAlts = `jan|jan\.|january|janry`
+	febAlts = `feb|feb\.|february|febry`
+	marAlts = `mar|mar\.|march`
+	aprAlts = `apr|apr\.|april`
+	mayAlts = `may`
+	junAlts = `jun|jun\.|june`
+	julAlts = `jul|jul\.|july`
+	augAlts = `aug|aug\.|august`
+	sepAlts = `sep|sep\.|september`
+	octAlts = `oct|oct\.|october`
+	novAlts = `nov|nov\.|november`
+	decAlts = `dec|dec\.|december`
+)
+
 var (
 	reYear        = regexp.MustCompile(`^\d{4}$`)
 	reBeforeYear  = regexp.MustCompile(`(?i)^bef(?:.|ore)?\s+(\d{4})\s*$`)
 	reAfterYear   = regexp.MustCompile(`(?i)^aft(?:.|er)?\s+(\d{4})\s*$`)
 	reAboutYear   = regexp.MustCompile(`(?i)^(?:abt|abt.|about)?\s+(\d{4})\s*$`)
-	reMarQuarter  = regexp.MustCompile(`(?i)^(?:mar|mar.|march|q1|jan)?\s+(\d{4})\s*$`)
-	reJunQuarter  = regexp.MustCompile(`(?i)^(?:jun|jun.|june|q2|apr)?\s+(\d{4})\s*$`)
-	reSepQuarter  = regexp.MustCompile(`(?i)^(?:sep|sep.|september|q3|jul)?\s+(\d{4})\s*$`)
-	reDecQuarter  = regexp.MustCompile(`(?i)^(?:dec|dec.|december|q4|oct)?\s+(\d{4})\s*$`)
 	reQuarterPost = regexp.MustCompile(`(?i)^(\d{4})\s*q([1-4])\s*$`)
+
+	reQuarter = [4]*regexp.Regexp{
+		regexp.MustCompile(`(?i)^(?:` + marAlts + `|q1|` + janAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + junAlts + `|q2|` + aprAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + sepAlts + `|q3|` + julAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + decAlts + `|q4|` + octAlts + `)?\s+(\d{4})\s*$`),
+	}
+
+	reMonthYear = [12]*regexp.Regexp{
+		regexp.MustCompile(`(?i)^(?:` + janAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + febAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + marAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + aprAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + mayAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + junAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + julAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + augAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + sepAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + octAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + novAlts + `)?\s+(\d{4})\s*$`),
+		regexp.MustCompile(`(?i)^(?:` + decAlts + `)?\s+(\d{4})\s*$`),
+	}
 )
 
 var dateFormats = []string{"_2 Jan 2006", "_2 January 2006", "_2 Jan, 2006", "_2 January, 2006", "January _2 2006", "Jan _2 2006", "Jan _2, 2006"}
@@ -32,6 +65,11 @@ func Parse(s string) (Date, error) {
 // A Parser converts strings into dates
 type Parser struct {
 	// TODO: options such as calendar and language
+
+	// AssumeGROQuarter controls whether the parse will assume that ambiguous dates consisting of a month and a year,
+	// where the month is the start or end of a quarter, refer to the UK General Register Office quarter
+	// containing that month, so July 1850 will be parsed as 3rd Quarter, 1850
+	AssumeGROQuarter bool
 }
 
 // Parse uses heuristics to parse s into the highest precision date available.
@@ -93,55 +131,38 @@ func (p *Parser) Parse(s string) (Date, error) {
 
 	}
 
-	m = reMarQuarter.FindStringSubmatch(s)
-	if len(m) > 1 {
-		y, err := strconv.Atoi(m[1])
+	if p.AssumeGROQuarter {
+		d, err := p.tryParseQuarter(s)
 		if err != nil {
 			return nil, err
 		}
-		return &YearQuarter{
-			Y: y,
-			Q: 1,
-		}, nil
+		if d != nil {
+			return d, nil
+		}
 
-	}
-
-	m = reJunQuarter.FindStringSubmatch(s)
-	if len(m) > 1 {
-		y, err := strconv.Atoi(m[1])
+		d, err = p.tryParseMonthYear(s)
 		if err != nil {
 			return nil, err
 		}
-		return &YearQuarter{
-			Y: y,
-			Q: 2,
-		}, nil
-
-	}
-
-	m = reSepQuarter.FindStringSubmatch(s)
-	if len(m) > 1 {
-		y, err := strconv.Atoi(m[1])
+		if d != nil {
+			return d, nil
+		}
+	} else {
+		d, err := p.tryParseMonthYear(s)
 		if err != nil {
 			return nil, err
 		}
-		return &YearQuarter{
-			Y: y,
-			Q: 3,
-		}, nil
+		if d != nil {
+			return d, nil
+		}
 
-	}
-
-	m = reDecQuarter.FindStringSubmatch(s)
-	if len(m) > 1 {
-		y, err := strconv.Atoi(m[1])
+		d, err = p.tryParseQuarter(s)
 		if err != nil {
 			return nil, err
 		}
-		return &YearQuarter{
-			Y: y,
-			Q: 4,
-		}, nil
+		if d != nil {
+			return d, nil
+		}
 
 	}
 
@@ -163,4 +184,44 @@ func (p *Parser) Parse(s string) (Date, error) {
 	}
 
 	return &Unknown{Text: s}, nil
+}
+
+func (p *Parser) tryParseQuarter(s string) (Date, error) {
+	for i, re := range reQuarter {
+		m := re.FindStringSubmatch(s)
+		if len(m) > 1 {
+			y, err := strconv.Atoi(m[1])
+			if err != nil {
+				return nil, err
+			}
+			return &YearQuarter{
+				Y: y,
+				Q: i + 1,
+			}, nil
+
+		}
+
+	}
+
+	return nil, nil
+}
+
+func (p *Parser) tryParseMonthYear(s string) (Date, error) {
+	for i, re := range reMonthYear {
+		m := re.FindStringSubmatch(s)
+		if len(m) > 1 {
+			y, err := strconv.Atoi(m[1])
+			if err != nil {
+				return nil, err
+			}
+			return &MonthYear{
+				Y: y,
+				M: i + 1,
+			}, nil
+
+		}
+
+	}
+
+	return nil, nil
 }

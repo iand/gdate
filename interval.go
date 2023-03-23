@@ -134,14 +134,14 @@ func (p *PreciseInterval) YMD() (int, int, int) {
 
 func (p *PreciseInterval) Rough() string {
 	if p.Y > 0 {
-		if p.M > 8 {
-			return "nearly" + pluralise(p.Y+1, "year")
+		if p.M > 10 {
+			return "nearly " + pluralise(p.Y+1, "year")
 		}
-		return pluralise(p.Y+1, "year")
+		return pluralise(p.Y, "year")
 	}
 	if p.M > 0 {
-		if p.D > 23 {
-			return "nearly" + pluralise(p.M+1, "month")
+		if p.D > 27 {
+			return "nearly " + pluralise(p.M+1, "month")
 		}
 		return pluralise(p.M+1, "month")
 	}

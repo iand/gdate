@@ -23,6 +23,8 @@ func TestSortsBefore(t *testing.T) {
 				&YearQuarter{Y: 1845, Q: 3},
 				&YearQuarter{Y: 1845, Q: 4},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1845, M: 7},
+				&MonthYear{Y: 1846, M: 1},
 			},
 			notBefore: []Date{
 				&Precise{Y: 1845, M: 6, D: 14},
@@ -37,9 +39,18 @@ func TestSortsBefore(t *testing.T) {
 				&YearQuarter{Y: 1845, Q: 2},
 				&EstimatedYear{Y: 1845},
 				&EstimatedYear{Y: 1844},
+				&MonthYear{Y: 1845, M: 6},
+				&MonthYear{Y: 1845, M: 5},
+				&MonthYear{Y: 1844, M: 7},
 			},
 		},
-
+		{
+			date: &Precise{Y: 1845, M: 1, D: 1},
+			notBefore: []Date{
+				&YearQuarter{Y: 1845, Q: 1},
+				&MonthYear{Y: 1845, M: 1},
+			},
+		},
 		{
 			date: &BeforeYear{Y: 1845},
 			before: []Date{
@@ -54,6 +65,7 @@ func TestSortsBefore(t *testing.T) {
 				&YearQuarter{Y: 1845, Q: 3},
 				&YearQuarter{Y: 1845, Q: 4},
 				&EstimatedYear{Y: 1845},
+				&MonthYear{Y: 1845, M: 5},
 			},
 			notBefore: []Date{
 				&BeforeYear{Y: 1845},
@@ -63,6 +75,7 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1844},
 				&AboutYear{Y: 1844},
 				&EstimatedYear{Y: 1844},
+				&MonthYear{Y: 1844, M: 12},
 			},
 		},
 
@@ -75,6 +88,7 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1846},
 				&AboutYear{Y: 1846},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1846, M: 5},
 			},
 			notBefore: []Date{
 				&AfterYear{Y: 1845},
@@ -91,6 +105,7 @@ func TestSortsBefore(t *testing.T) {
 				&YearQuarter{Y: 1845, Q: 3},
 				&YearQuarter{Y: 1845, Q: 4},
 				&EstimatedYear{Y: 1845},
+				&MonthYear{Y: 1845, M: 5},
 			},
 		},
 
@@ -108,6 +123,8 @@ func TestSortsBefore(t *testing.T) {
 				&YearQuarter{Y: 1845, Q: 4},
 				&AboutYear{Y: 1846},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1846, M: 5},
+				&MonthYear{Y: 1845, M: 5},
 			},
 			notBefore: []Date{
 				&Year{Y: 1844},
@@ -119,6 +136,8 @@ func TestSortsBefore(t *testing.T) {
 				&AboutYear{Y: 1845},
 				&EstimatedYear{Y: 1844},
 				&EstimatedYear{Y: 1845},
+				&MonthYear{Y: 1844, M: 5},
+				&YearQuarter{Y: 1844, Q: 4},
 			},
 		},
 
@@ -136,6 +155,7 @@ func TestSortsBefore(t *testing.T) {
 				&YearQuarter{Y: 1845, Q: 3},
 				&YearQuarter{Y: 1845, Q: 4},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1846, M: 1},
 			},
 			notBefore: []Date{
 				&AboutYear{Y: 1845},
@@ -147,6 +167,7 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1844},
 				&EstimatedYear{Y: 1845},
 				&EstimatedYear{Y: 1844},
+				&MonthYear{Y: 1845, M: 12},
 			},
 		},
 		{
@@ -158,6 +179,8 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1846},
 				&Precise{Y: 1845, M: 1, D: 1},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1845, M: 1},
+				&MonthYear{Y: 1845, M: 4},
 			},
 			notBefore: []Date{
 				&AboutYear{Y: 1845},
@@ -181,6 +204,7 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1846},
 				&Precise{Y: 1845, M: 4, D: 1},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1845, M: 4},
 			},
 			notBefore: []Date{
 				&AboutYear{Y: 1845},
@@ -195,6 +219,7 @@ func TestSortsBefore(t *testing.T) {
 				&Precise{Y: 1844, M: 12, D: 31},
 				&EstimatedYear{Y: 1845},
 				&EstimatedYear{Y: 1844},
+				&MonthYear{Y: 1845, M: 3},
 			},
 		},
 		{
@@ -206,6 +231,7 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1846},
 				&Precise{Y: 1845, M: 7, D: 1},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1845, M: 7},
 			},
 			notBefore: []Date{
 				&AboutYear{Y: 1845},
@@ -220,6 +246,7 @@ func TestSortsBefore(t *testing.T) {
 				&Precise{Y: 1844, M: 12, D: 31},
 				&EstimatedYear{Y: 1845},
 				&EstimatedYear{Y: 1844},
+				&MonthYear{Y: 1845, M: 6},
 			},
 		},
 		{
@@ -231,6 +258,7 @@ func TestSortsBefore(t *testing.T) {
 				&Year{Y: 1846},
 				&Precise{Y: 1845, M: 10, D: 1},
 				&EstimatedYear{Y: 1846},
+				&MonthYear{Y: 1845, M: 10},
 			},
 			notBefore: []Date{
 				&AboutYear{Y: 1845},
@@ -245,6 +273,7 @@ func TestSortsBefore(t *testing.T) {
 				&Precise{Y: 1844, M: 12, D: 31},
 				&EstimatedYear{Y: 1845},
 				&EstimatedYear{Y: 1844},
+				&MonthYear{Y: 1845, M: 9},
 			},
 		},
 		{
