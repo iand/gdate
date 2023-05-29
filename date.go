@@ -5,10 +5,19 @@ import (
 	"strconv"
 )
 
+const maxJulianDay = 2147483647
+
 type Date interface {
 	String() string
-	SortsBefore(Date) bool
 	Occurrence() string
+	Calendar() Calendar
+}
+
+type ComparableDate interface {
+	// EarliestJulianDay returns the earliest Julian day that is included by the date
+	EarliestJulianDay() int
+	// LatestJulianDay returns the latest Julian day that is included by the date
+	LatestJulianDay() int
 }
 
 // SortsBefore reports whether a should sort before b chronologically
@@ -16,13 +25,32 @@ func SortsBefore(a, b Date) bool {
 	if a == nil || b == nil {
 		return false
 	}
-	return a.SortsBefore(b)
+
+	if ca, ok := a.(ComparableDate); ok {
+		if cb, ok := b.(ComparableDate); ok {
+			if ca.EarliestJulianDay() != cb.EarliestJulianDay() {
+				return ca.EarliestJulianDay() < cb.EarliestJulianDay()
+			}
+			// larger ranges sort before ranges they might contain
+			return ca.LatestJulianDay() > cb.LatestJulianDay()
+		}
+	}
+
+	if s, ok := a.(interface{ SortsBefore(Date) bool }); ok {
+		return s.SortsBefore(b)
+	}
+
+	if s, ok := b.(interface{ SortsBefore(Date) bool }); ok {
+		return !s.SortsBefore(a)
+	}
+
+	return false
 }
 
 // AsYear returns the date as a Year and true if possible, false if it is not possible to convert.
 func AsYear(d Date) (*Year, bool) {
 	if yearer, ok := d.(interface{ Year() int }); ok {
-		return &Year{Y: yearer.Year()}, true
+		return &Year{Y: yearer.Year(), C: d.Calendar()}, true
 	}
 	return nil, false
 }
@@ -46,6 +74,7 @@ func IsUnknown(d Date) bool {
 
 // Unknown is an unknown date. It sorts after every other type of date.
 type Unknown struct {
+	C    Calendar
 	Text string
 }
 
@@ -68,8 +97,13 @@ func (u *Unknown) SortsBefore(d Date) bool {
 	return false
 }
 
+func (u *Unknown) Calendar() Calendar {
+	return u.C
+}
+
 // Precise is a date with a known year, month and day. No calendar is assumed for this date.
 type Precise struct {
+	C Calendar
 	Y int
 	M int // 1-12 like go's time package
 	D int
@@ -83,54 +117,6 @@ func (p *Precise) Occurrence() string {
 	return fmt.Sprintf("on %d %s, %04d", p.D, shortMonthNames[p.M], p.Y)
 }
 
-func (p *Precise) SortsBefore(d Date) bool {
-	switch td := d.(type) {
-	case *Precise:
-		if p.Y != td.Y {
-			return p.Y < td.Y
-		}
-		if p.M != td.M {
-			return p.M < td.M
-		}
-		if p.D != td.D {
-			return p.D < td.D
-		}
-		return false
-	case *Year:
-		return p.Y < td.Y
-	case *BeforeYear:
-		return p.Y < td.Y
-	case *AfterYear:
-		return p.Y <= td.Y
-	case *AboutYear:
-		return p.Y < td.Y
-	case *YearQuarter:
-		if p.Y != td.Y {
-			return p.Y < td.Y
-		}
-		if p.M != ((td.Q-1)*3 + 1) {
-			return p.M < ((td.Q-1)*3 + 1)
-		}
-		// Sorts after the start of the quarter
-		return p.D == 0
-	case *MonthYear:
-		if p.Y != td.Y {
-			return p.Y < td.Y
-		}
-		if p.M != td.M {
-			return p.M < td.M
-		}
-		return p.D == 0
-	case *EstimatedYear:
-		return p.Y < td.Y
-	case *YearRange:
-		return p.Y < td.Lower
-	case *Unknown:
-		return true
-	}
-	return false
-}
-
 func (p *Precise) Year() int {
 	return p.Y
 }
@@ -142,9 +128,22 @@ func (p *Precise) DateInYear(long bool) string {
 	return fmt.Sprintf("%d %s", p.D, shortMonthNames[p.M])
 }
 
+func (p *Precise) Calendar() Calendar {
+	return p.C
+}
+
+func (p *Precise) EarliestJulianDay() int {
+	return p.C.JulianDay(p.Y, p.M, p.D)
+}
+
+func (p *Precise) LatestJulianDay() int {
+	return p.C.JulianDay(p.Y, p.M, p.D)
+}
+
 // Year is a date for which only the year is known or a period of time that may span an entire year.
 // It sorts before any date with a higher numeric year.
 type Year struct {
+	C Calendar
 	Y int
 }
 
@@ -156,19 +155,26 @@ func (y *Year) Occurrence() string {
 	return fmt.Sprintf("in %04d", y.Y)
 }
 
-func (y *Year) SortsBefore(d Date) bool {
-	// sorts like it is just before the first day of the year
-	p := Precise{Y: y.Y, M: 1, D: 0}
-	return p.SortsBefore(d)
-}
-
 func (y *Year) Year() int {
 	return y.Y
+}
+
+func (y *Year) Calendar() Calendar {
+	return y.C
+}
+
+func (y *Year) EarliestJulianDay() int {
+	return y.C.JulianDay(y.Y, 1, 1)
+}
+
+func (y *Year) LatestJulianDay() int {
+	return y.C.JulianDay(y.Y, 12, 31)
 }
 
 // Year is a date for which only the month and year is known or a period of time that may span an entire month.
 // It sorts before any date with a higher numeric year.
 type MonthYear struct {
+	C Calendar
 	M int
 	Y int
 }
@@ -181,19 +187,29 @@ func (m *MonthYear) Occurrence() string {
 	return fmt.Sprintf("in %s %04d", shortMonthNames[m.M], m.Y)
 }
 
-func (m *MonthYear) SortsBefore(d Date) bool {
-	// sorts like it is just before first of the month
-	p := Precise{Y: m.Y, M: m.M, D: 0}
-	return p.SortsBefore(d)
-}
-
 func (m *MonthYear) Year() int {
 	return m.Y
+}
+
+func (m *MonthYear) Calendar() Calendar {
+	return m.C
+}
+
+func (m *MonthYear) EarliestJulianDay() int {
+	return m.C.JulianDay(m.Y, m.M, 1)
+}
+
+func (m *MonthYear) LatestJulianDay() int {
+	if m.M < 12 {
+		return m.C.JulianDay(m.Y, m.M+1, 1) - 1
+	}
+	return m.C.JulianDay(m.Y, m.M, 31)
 }
 
 // BeforeYear represents a date that is before the start of a specific year.
 // It sorts before any date with that year.
 type BeforeYear struct {
+	C Calendar
 	Y int
 }
 
@@ -231,8 +247,13 @@ func (b *BeforeYear) SortsBefore(d Date) bool {
 	return false
 }
 
+func (b *BeforeYear) Calendar() Calendar {
+	return b.C
+}
+
 // AfterYear represents a date that is after the end of a specific year
 type AfterYear struct {
+	C Calendar
 	Y int
 }
 
@@ -270,8 +291,13 @@ func (a *AfterYear) SortsBefore(d Date) bool {
 	return false
 }
 
+func (a *AfterYear) Calendar() Calendar {
+	return a.C
+}
+
 // AboutYear represents a date that is near to a specific year
 type AboutYear struct {
+	C Calendar
 	Y int
 }
 
@@ -313,6 +339,10 @@ func (a *AboutYear) Year() int {
 	return a.Y
 }
 
+func (a *AboutYear) Calendar() Calendar {
+	return a.C
+}
+
 // YearQuarter represents quarter of a specific year, based on GRO quarters
 // Values of Q correspond to quarters as follows:
 // 1 = Jan-Mar, known as MAR QTR
@@ -320,6 +350,7 @@ func (a *AboutYear) Year() int {
 // 3 = Jul-Sep, known as SEP QTR
 // 4 = Oct-Dec, known as DEC QTR
 type YearQuarter struct {
+	C Calendar
 	Y int
 	Q int
 }
@@ -346,18 +377,29 @@ func (y *YearQuarter) Occurrence() string {
 	return fmt.Sprintf("in the %s quarter of %04d", y.MonthRange(), y.Y)
 }
 
-func (y *YearQuarter) SortsBefore(d Date) bool {
-	// sorts like it is just before the first day of the quarter
-	p := Precise{Y: y.Y, M: 1 + (y.Q-1)*3, D: 0}
-	return p.SortsBefore(d)
-}
-
 func (y *YearQuarter) Year() int {
 	return y.Y
 }
 
+func (y *YearQuarter) Calendar() Calendar {
+	return y.C
+}
+
+func (y *YearQuarter) EarliestJulianDay() int {
+	return y.C.JulianDay(y.Y, 1+(y.Q-1)*3, 1)
+}
+
+func (y *YearQuarter) LatestJulianDay() int {
+	d := 31
+	if y.Q == 2 {
+		d = 30
+	}
+	return y.C.JulianDay(y.Y, 3+(y.Q-1)*3, d)
+}
+
 // EstimatedYear represents a date that is estimated to be a specific year
 type EstimatedYear struct {
+	C Calendar
 	Y int
 }
 
@@ -399,6 +441,10 @@ func (e *EstimatedYear) Year() int {
 	return e.Y
 }
 
+func (e *EstimatedYear) Calendar() Calendar {
+	return e.C
+}
+
 var shortMonthNames = []string{
 	1:  "Jan",
 	2:  "Feb",
@@ -431,6 +477,7 @@ var longMonthNames = []string{
 
 // YearRange represents a date that is within the range of two years, including the upper and lower year.
 type YearRange struct {
+	C     Calendar
 	Lower int // first year of the range
 	Upper int // last year of the range
 }
@@ -449,31 +496,14 @@ func (y *YearRange) Occurrence() string {
 	return fmt.Sprintf("between %d and %d", y.Lower, y.Upper)
 }
 
-func (y *YearRange) SortsBefore(d Date) bool {
-	switch td := d.(type) {
-	case *YearRange:
-		if y.Lower != td.Lower {
-			return y.Lower <= td.Lower
-		}
-		return y.Upper <= td.Upper
-	case *Precise:
-		return y.Lower <= td.Y
-	case *Year:
-		return y.Lower < td.Y
-	case *BeforeYear:
-		return y.Lower < td.Y
-	case *AfterYear:
-		return y.Upper <= td.Y
-	case *AboutYear:
-		return y.Lower < td.Y
-	case *YearQuarter:
-		return y.Lower <= td.Y
-	case *EstimatedYear:
-		return y.Lower < td.Y
-	case *MonthYear:
-		return y.Lower < td.Y
-	case *Unknown:
-		return true
-	}
-	return false
+func (y *YearRange) Calendar() Calendar {
+	return y.C
+}
+
+func (y *YearRange) EarliestJulianDay() int {
+	return y.C.JulianDay(y.Lower, 1, 1)
+}
+
+func (y *YearRange) LatestJulianDay() int {
+	return y.C.JulianDay(y.Upper, 12, 31)
 }

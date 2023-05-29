@@ -109,6 +109,10 @@ func TestParse(t *testing.T) {
 			alts: []string{"december 1950"},
 			want: &MonthYear{Y: 1950, M: 12},
 		},
+		{
+			s:    "1920-1923",
+			want: &YearRange{Lower: 1920, Upper: 1923},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -221,6 +225,129 @@ func TestParseAssumeGROQuarter(t *testing.T) {
 				if diff := cmp.Diff(tc.want, dt); diff != "" {
 					t.Errorf("Parse(%q) mismatch (-want +got):\n%s", alt, diff)
 				}
+			}
+		})
+	}
+}
+
+func TestParseReckoningLocation(t *testing.T) {
+	testCases := []struct {
+		s    string
+		l    ReckoningLocation
+		want Date
+	}{
+		{
+			s:    "2 Apr 1752",
+			l:    EnglandAndWales,
+			want: &Precise{Y: 1752, M: 4, D: 2, C: Gregorian},
+		},
+		{
+			s:    "2 Apr 1751",
+			l:    EnglandAndWales,
+			want: &Precise{Y: 1751, M: 4, D: 2, C: Julian25Mar},
+		},
+		{
+			s:    "2 Apr 1752",
+			l:    Scotland,
+			want: &Precise{Y: 1752, M: 4, D: 2, C: Gregorian},
+		},
+		{
+			s:    "2 Apr 1751",
+			l:    Scotland,
+			want: &Precise{Y: 1751, M: 4, D: 2, C: Julian},
+		},
+		{
+			s:    "2 Apr 1558",
+			l:    Scotland,
+			want: &Precise{Y: 1558, M: 4, D: 2, C: Julian25Mar},
+		},
+		{
+			s:    "2 Apr 1752",
+			l:    Ireland,
+			want: &Precise{Y: 1752, M: 4, D: 2, C: Gregorian},
+		},
+		{
+			s:    "2 Apr 1751",
+			l:    Ireland,
+			want: &Precise{Y: 1751, M: 4, D: 2, C: Julian25Mar},
+		},
+		{
+			s:    "bef 1752",
+			l:    EnglandAndWales,
+			want: &BeforeYear{Y: 1752, C: Julian25Mar},
+		},
+		{
+			s:    "bef 1753",
+			l:    EnglandAndWales,
+			want: &BeforeYear{Y: 1753, C: Gregorian},
+		},
+		{
+			s:    "aft 1751",
+			l:    EnglandAndWales,
+			want: &AfterYear{Y: 1751, C: Gregorian},
+		},
+		{
+			s:    "aft 1750",
+			l:    EnglandAndWales,
+			want: &AfterYear{Y: 1750, C: Julian25Mar},
+		},
+		{
+			s:    "",
+			l:    EnglandAndWales,
+			want: &Unknown{C: Gregorian},
+		},
+		{
+			s:    "1751",
+			l:    EnglandAndWales,
+			want: &Year{Y: 1751, C: Julian25Mar},
+		},
+		{
+			s:    "1752",
+			l:    EnglandAndWales,
+			want: &Year{Y: 1752, C: Gregorian},
+		},
+		{
+			s:    "about 1751",
+			l:    EnglandAndWales,
+			want: &AboutYear{Y: 1751, C: Julian25Mar},
+		},
+		{
+			s:    "about 1752",
+			l:    EnglandAndWales,
+			want: &AboutYear{Y: 1752, C: Gregorian},
+		},
+		{
+			s:    "January 1751",
+			l:    EnglandAndWales,
+			want: &MonthYear{Y: 1751, M: 1, C: Julian25Mar},
+		},
+		{
+			s:    "January 1752",
+			l:    EnglandAndWales,
+			want: &MonthYear{Y: 1752, M: 1, C: Gregorian},
+		},
+		{
+			s:    "1751-1753",
+			want: &YearRange{Lower: 1751, Upper: 1753, C: Julian25Mar},
+		},
+		{
+			s:    "1752-1753",
+			want: &YearRange{Lower: 1752, Upper: 1753, C: Gregorian},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			p := &Parser{
+				ReckoningLocation: tc.l,
+			}
+			dt, err := p.Parse(tc.s)
+			if err != nil {
+				t.Fatalf("got unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(tc.want, dt); diff != "" {
+				t.Errorf("Parse(%q) mismatch (-want +got):\n%s", tc.s, diff)
 			}
 		})
 	}

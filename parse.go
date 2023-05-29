@@ -27,6 +27,7 @@ var (
 	reAfterYear   = regexp.MustCompile(`(?i)^aft(?:.|er)?\s+(\d{4})\s*$`)
 	reAboutYear   = regexp.MustCompile(`(?i)^(?:abt|abt.|about)?\s+(\d{4})\s*$`)
 	reQuarterPost = regexp.MustCompile(`(?i)^(\d{4})\s*q([1-4])\s*$`)
+	reYearRange   = regexp.MustCompile(`^(\d{4})-(\d{4})$`)
 
 	reQuarter = [4]*regexp.Regexp{
 		regexp.MustCompile(`(?i)^(?:` + marAlts + `|q1|` + janAlts + `)?\s+(\d{4})\s*$`),
@@ -64,7 +65,8 @@ func Parse(s string) (Date, error) {
 
 // A Parser converts strings into dates
 type Parser struct {
-	// TODO: options such as calendar and language
+	// TODO: options such language
+	ReckoningLocation ReckoningLocation
 
 	// AssumeGROQuarter controls whether the parse will assume that ambiguous dates consisting of a month and a year,
 	// where the month is the start or end of a quarter, refer to the UK General Register Office quarter
@@ -78,6 +80,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 	for _, f := range dateFormats {
 		if t, err := time.Parse(f, s); err == nil {
 			return &Precise{
+				C: p.ReckoningLocation.Calendar(t.Year()),
 				Y: t.Year(),
 				M: int(t.Month()),
 				D: t.Day(),
@@ -91,6 +94,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &Year{
+			C: p.ReckoningLocation.Calendar(y),
 			Y: y,
 		}, nil
 	}
@@ -102,6 +106,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &BeforeYear{
+			C: p.ReckoningLocation.Calendar(y - 1),
 			Y: y,
 		}, nil
 
@@ -114,6 +119,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &AfterYear{
+			C: p.ReckoningLocation.Calendar(y + 1),
 			Y: y,
 		}, nil
 
@@ -126,6 +132,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &AboutYear{
+			C: p.ReckoningLocation.Calendar(y),
 			Y: y,
 		}, nil
 
@@ -177,8 +184,27 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &YearQuarter{
+			C: p.ReckoningLocation.Calendar(y),
 			Y: y,
 			Q: q,
+		}, nil
+
+	}
+
+	m = reYearRange.FindStringSubmatch(s)
+	if len(m) > 2 {
+		lower, err := strconv.Atoi(m[1])
+		if err != nil {
+			return nil, err
+		}
+		upper, err := strconv.Atoi(m[2])
+		if err != nil {
+			return nil, err
+		}
+		return &YearRange{
+			C:     p.ReckoningLocation.Calendar(lower),
+			Lower: lower,
+			Upper: upper,
 		}, nil
 
 	}
@@ -195,6 +221,7 @@ func (p *Parser) tryParseQuarter(s string) (Date, error) {
 				return nil, err
 			}
 			return &YearQuarter{
+				C: p.ReckoningLocation.Calendar(y),
 				Y: y,
 				Q: i + 1,
 			}, nil
@@ -215,6 +242,7 @@ func (p *Parser) tryParseMonthYear(s string) (Date, error) {
 				return nil, err
 			}
 			return &MonthYear{
+				C: p.ReckoningLocation.Calendar(y),
 				Y: y,
 				M: i + 1,
 			}, nil
