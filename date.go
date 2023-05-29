@@ -123,7 +123,8 @@ func (p *Precise) SortsBefore(d Date) bool {
 		return p.D == 0
 	case *EstimatedYear:
 		return p.Y < td.Y
-
+	case *YearRange:
+		return p.Y < td.Lower
 	case *Unknown:
 		return true
 	}
@@ -222,6 +223,8 @@ func (b *BeforeYear) SortsBefore(d Date) bool {
 		return b.Y <= td.Y
 	case *MonthYear:
 		return b.Y <= td.Y
+	case *YearRange:
+		return b.Y < td.Lower
 	case *Unknown:
 		return true
 	}
@@ -259,6 +262,8 @@ func (a *AfterYear) SortsBefore(d Date) bool {
 		return a.Y < td.Y
 	case *MonthYear:
 		return a.Y < td.Y
+	case *YearRange:
+		return a.Y < td.Lower
 	case *Unknown:
 		return true
 	}
@@ -296,6 +301,8 @@ func (a *AboutYear) SortsBefore(d Date) bool {
 		return a.Y < td.Y
 	case *MonthYear:
 		return a.Y < td.Y
+	case *YearRange:
+		return a.Y < td.Lower
 	case *Unknown:
 		return true
 	}
@@ -380,6 +387,8 @@ func (e *EstimatedYear) SortsBefore(d Date) bool {
 		return e.Y < td.Y
 	case *MonthYear:
 		return e.Y < td.Y
+	case *YearRange:
+		return e.Y < td.Lower
 	case *Unknown:
 		return true
 	}
@@ -418,4 +427,53 @@ var longMonthNames = []string{
 	10: "October",
 	11: "November",
 	12: "December",
+}
+
+// YearRange represents a date that is within the range of two years, including the upper and lower year.
+type YearRange struct {
+	Lower int // first year of the range
+	Upper int // last year of the range
+}
+
+func (y *YearRange) String() string {
+	if y.Lower%10 == 0 && (y.Upper-y.Lower == 9 || y.Upper-y.Lower == 99) {
+		return fmt.Sprintf("%ds", y.Lower)
+	}
+	return strconv.Itoa(y.Lower) + "-" + strconv.Itoa(y.Upper)
+}
+
+func (y *YearRange) Occurrence() string {
+	if y.Lower%10 == 0 && (y.Upper-y.Lower == 9 || y.Upper-y.Lower == 99) {
+		return fmt.Sprintf("in the %ds", y.Lower)
+	}
+	return fmt.Sprintf("between %d and %d", y.Lower, y.Upper)
+}
+
+func (y *YearRange) SortsBefore(d Date) bool {
+	switch td := d.(type) {
+	case *YearRange:
+		if y.Lower != td.Lower {
+			return y.Lower <= td.Lower
+		}
+		return y.Upper <= td.Upper
+	case *Precise:
+		return y.Lower <= td.Y
+	case *Year:
+		return y.Lower < td.Y
+	case *BeforeYear:
+		return y.Lower < td.Y
+	case *AfterYear:
+		return y.Upper <= td.Y
+	case *AboutYear:
+		return y.Lower < td.Y
+	case *YearQuarter:
+		return y.Lower <= td.Y
+	case *EstimatedYear:
+		return y.Lower < td.Y
+	case *MonthYear:
+		return y.Lower < td.Y
+	case *Unknown:
+		return true
+	}
+	return false
 }
