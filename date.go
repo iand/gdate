@@ -5,8 +5,6 @@ import (
 	"strconv"
 )
 
-const maxJulianDay = 2147483647
-
 type Date interface {
 	String() string
 	Occurrence() string
