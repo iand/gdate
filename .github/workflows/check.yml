@@ -20,7 +20,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Get StaticCheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@v0.4.2 # Version 2023.1.2 (v0.4.2)
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: Gomod
         run: |
           go mod tidy
