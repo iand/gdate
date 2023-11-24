@@ -1,10 +1,11 @@
 name: Bump version
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
+  workflow_run:
+    workflows: ["Run tests"]
+    types:
+      - completed
+
 jobs:
   build:
     runs-on: ubuntu-latest
