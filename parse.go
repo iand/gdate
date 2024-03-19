@@ -36,7 +36,10 @@ var (
 		regexp.MustCompile(`(?i)^(?:` + decAlts + `|q4|` + octAlts + `)?\s+(\d{4})\s*$`),
 	}
 
-	reMonthYear = [12]*regexp.Regexp{
+	reMonthYearYM = regexp.MustCompile(`^(\d{4})-((?:0[1-9]|1[0-2]|[1-9]))$`)
+	reMonthYearMY = regexp.MustCompile(`^((?:0[1-9]|1[0-2]|[1-9]))-(\d{4})$`)
+
+	reMonthYearNamed = [12]*regexp.Regexp{
 		regexp.MustCompile(`(?i)^(?:` + janAlts + `)?\s+(\d{4})\s*$`),
 		regexp.MustCompile(`(?i)^(?:` + febAlts + `)?\s+(\d{4})\s*$`),
 		regexp.MustCompile(`(?i)^(?:` + marAlts + `)?\s+(\d{4})\s*$`),
@@ -52,7 +55,7 @@ var (
 	}
 )
 
-var dateFormats = []string{"_2 Jan 2006", "_2 January 2006", "_2 Jan, 2006", "_2 January, 2006", "January _2 2006", "Jan _2 2006", "Jan _2, 2006"}
+var dateFormats = []string{"_2 Jan 2006", "_2 January 2006", "_2 Jan, 2006", "_2 January, 2006", "January _2 2006", "Jan _2 2006", "Jan _2, 2006", "2006-01-02"}
 
 var defaultParser = Parser{}
 
@@ -234,7 +237,40 @@ func (p *Parser) tryParseQuarter(s string) (Date, error) {
 }
 
 func (p *Parser) tryParseMonthYear(s string) (Date, error) {
-	for i, re := range reMonthYear {
+	m := reMonthYearYM.FindStringSubmatch(s)
+	if len(m) > 2 {
+		y, err := strconv.Atoi(m[1])
+		if err != nil {
+			return nil, err
+		}
+		mo, err := strconv.Atoi(m[2])
+		if err != nil {
+			return nil, err
+		}
+		return &MonthYear{
+			C: p.ReckoningLocation.Calendar(y),
+			Y: y,
+			M: mo,
+		}, nil
+	}
+	m = reMonthYearMY.FindStringSubmatch(s)
+	if len(m) > 2 {
+		mo, err := strconv.Atoi(m[1])
+		if err != nil {
+			return nil, err
+		}
+		y, err := strconv.Atoi(m[2])
+		if err != nil {
+			return nil, err
+		}
+		return &MonthYear{
+			C: p.ReckoningLocation.Calendar(y),
+			Y: y,
+			M: mo,
+		}, nil
+	}
+
+	for i, re := range reMonthYearNamed {
 		m := re.FindStringSubmatch(s)
 		if len(m) > 1 {
 			y, err := strconv.Atoi(m[1])

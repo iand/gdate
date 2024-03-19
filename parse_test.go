@@ -175,22 +175,22 @@ func TestParseAssumeGROQuarter(t *testing.T) {
 		},
 		{
 			s:    "February 1950",
-			alts: []string{"february 1950"},
+			alts: []string{"february 1950", "02-1950", "1950-02", "2-1950", "1950-2"},
 			want: &MonthYear{Y: 1950, M: 2},
 		},
 		{
 			s:    "May 1950",
-			alts: []string{"may 1950"},
+			alts: []string{"may 1950", "05-1950", "1950-05", "5-1950", "1950-5"},
 			want: &MonthYear{Y: 1950, M: 5},
 		},
 		{
 			s:    "August 1950",
-			alts: []string{"august 1950"},
+			alts: []string{"august 1950", "08-1950", "1950-08", "8-1950", "1950-8"},
 			want: &MonthYear{Y: 1950, M: 8},
 		},
 		{
 			s:    "November 1950",
-			alts: []string{"november 1950"},
+			alts: []string{"november 1950", "11-1950", "1950-11"},
 			want: &MonthYear{Y: 1950, M: 11},
 		},
 	}
