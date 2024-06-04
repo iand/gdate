@@ -60,9 +60,10 @@ type ReckoningLocation int
 
 const (
 	// TODO: non-English reckonings
-	EnglandAndWales ReckoningLocation = 0
-	Scotland        ReckoningLocation = 1
-	Ireland         ReckoningLocation = 2
+	ReckoningLocationNone ReckoningLocation = 0
+	EnglandAndWales       ReckoningLocation = 1
+	Scotland              ReckoningLocation = 2
+	Ireland               ReckoningLocation = 3
 )
 
 // StartOfYear returns calendar in use for the year specified.

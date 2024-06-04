@@ -328,10 +328,12 @@ func TestParseReckoningLocation(t *testing.T) {
 		},
 		{
 			s:    "1751-1753",
+			l:    EnglandAndWales,
 			want: &YearRange{Lower: 1751, Upper: 1753, C: Julian25Mar},
 		},
 		{
 			s:    "1752-1753",
+			l:    EnglandAndWales,
 			want: &YearRange{Lower: 1752, Upper: 1753, C: Gregorian},
 		},
 	}

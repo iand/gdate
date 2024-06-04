@@ -99,7 +99,7 @@ func (u *Unknown) Calendar() Calendar {
 	return u.C
 }
 
-// Precise is a date with a known year, month and day. No calendar is assumed for this date.
+// Precise is a date with a known year, month and day.
 type Precise struct {
 	C Calendar
 	Y int

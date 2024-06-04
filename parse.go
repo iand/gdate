@@ -69,12 +69,20 @@ func Parse(s string) (Date, error) {
 // A Parser converts strings into dates
 type Parser struct {
 	// TODO: options such language
+
+	// ReckoningLocation specifies the location from which the date originated and is used
+	// to set the calendar based on the year of calendar change in that location. To force
+	// a known calendar to be used, set this to ReckoningLocationNone and set the Calendar
+	// field to the required calendar.
 	ReckoningLocation ReckoningLocation
 
 	// AssumeGROQuarter controls whether the parse will assume that ambiguous dates consisting of a month and a year,
 	// where the month is the start or end of a quarter, refer to the UK General Register Office quarter
 	// containing that month, so July 1850 will be parsed as 3rd Quarter, 1850
 	AssumeGROQuarter bool
+
+	// Calendar specifies the calendar to use for the date if ReckoningLocation is set to ReckoningLocationNone.
+	Calendar Calendar
 }
 
 // Parse uses heuristics to parse s into the highest precision date available.
@@ -83,7 +91,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 	for _, f := range dateFormats {
 		if t, err := time.Parse(f, s); err == nil {
 			return &Precise{
-				C: p.ReckoningLocation.Calendar(t.Year()),
+				C: p.calendar(t.Year()),
 				Y: t.Year(),
 				M: int(t.Month()),
 				D: t.Day(),
@@ -97,7 +105,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &Year{
-			C: p.ReckoningLocation.Calendar(y),
+			C: p.calendar(y),
 			Y: y,
 		}, nil
 	}
@@ -109,7 +117,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &BeforeYear{
-			C: p.ReckoningLocation.Calendar(y - 1),
+			C: p.calendar(y - 1),
 			Y: y,
 		}, nil
 
@@ -122,7 +130,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &AfterYear{
-			C: p.ReckoningLocation.Calendar(y + 1),
+			C: p.calendar(y + 1),
 			Y: y,
 		}, nil
 
@@ -135,7 +143,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &AboutYear{
-			C: p.ReckoningLocation.Calendar(y),
+			C: p.calendar(y),
 			Y: y,
 		}, nil
 
@@ -187,7 +195,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &YearQuarter{
-			C: p.ReckoningLocation.Calendar(y),
+			C: p.calendar(y),
 			Y: y,
 			Q: q,
 		}, nil
@@ -205,7 +213,7 @@ func (p *Parser) Parse(s string) (Date, error) {
 			return nil, err
 		}
 		return &YearRange{
-			C:     p.ReckoningLocation.Calendar(lower),
+			C:     p.calendar(lower),
 			Lower: lower,
 			Upper: upper,
 		}, nil
@@ -224,7 +232,7 @@ func (p *Parser) tryParseQuarter(s string) (Date, error) {
 				return nil, err
 			}
 			return &YearQuarter{
-				C: p.ReckoningLocation.Calendar(y),
+				C: p.calendar(y),
 				Y: y,
 				Q: i + 1,
 			}, nil
@@ -248,7 +256,7 @@ func (p *Parser) tryParseMonthYear(s string) (Date, error) {
 			return nil, err
 		}
 		return &MonthYear{
-			C: p.ReckoningLocation.Calendar(y),
+			C: p.calendar(y),
 			Y: y,
 			M: mo,
 		}, nil
@@ -264,7 +272,7 @@ func (p *Parser) tryParseMonthYear(s string) (Date, error) {
 			return nil, err
 		}
 		return &MonthYear{
-			C: p.ReckoningLocation.Calendar(y),
+			C: p.calendar(y),
 			Y: y,
 			M: mo,
 		}, nil
@@ -278,7 +286,7 @@ func (p *Parser) tryParseMonthYear(s string) (Date, error) {
 				return nil, err
 			}
 			return &MonthYear{
-				C: p.ReckoningLocation.Calendar(y),
+				C: p.calendar(y),
 				Y: y,
 				M: i + 1,
 			}, nil
@@ -288,4 +296,12 @@ func (p *Parser) tryParseMonthYear(s string) (Date, error) {
 	}
 
 	return nil, nil
+}
+
+func (p *Parser) calendar(yr int) Calendar {
+	if p.ReckoningLocation == ReckoningLocationNone {
+		return p.Calendar
+	}
+
+	return p.ReckoningLocation.Calendar(yr)
 }
