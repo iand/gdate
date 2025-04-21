@@ -68,7 +68,7 @@ func Parse(s string) (Date, error) {
 
 // A Parser converts strings into dates
 type Parser struct {
-	// TODO: options such language
+	// TODO: options such as language
 
 	// ReckoningLocation specifies the location from which the date originated and is used
 	// to set the calendar based on the year of calendar change in that location. To force

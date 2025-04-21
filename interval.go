@@ -168,6 +168,7 @@ func (i *UnknownInterval) Rough() string {
 	return "unknown"
 }
 
+// YearsInterval represents an interval of time measured in whole years
 type YearsInterval struct {
 	Y int
 }
@@ -186,6 +187,7 @@ func (p *YearsInterval) Years() int {
 	return p.Y
 }
 
+// AboutYearsInterval represents an interval of time measured in an uncertain number of whole years
 type AboutYearsInterval struct {
 	Y int
 }
