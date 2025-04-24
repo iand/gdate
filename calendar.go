@@ -1,7 +1,6 @@
 package gdate
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -27,6 +26,7 @@ func (c Calendar) JulianDay(y, m, d int) int {
 		if m == 1 || m == 2 || (m == 3 && d < 25) {
 			y--
 			m += 12
+			d--
 		}
 
 		return 367*y - (7*(y+5001+(m-9)/7))/4 + (275*m)/9 + d + 1729777
@@ -43,12 +43,12 @@ func (c Calendar) FmtYear(y, m, d int) string {
 	if c == Julian25Mar && (m == 1 || m == 2 || (m == 3 && d < 25)) {
 		dy := y % 10
 		if dy < 9 {
-			return fmt.Sprintf("%04d", y) + "/" + strconv.Itoa(dy+1)
+			return strconv.Itoa(y) + "/" + strconv.Itoa(dy+1)
 		}
 		dy = y % 100
-		return fmt.Sprintf("%04d", y) + "/" + strconv.Itoa(dy+1)
+		return strconv.Itoa(y) + "/" + strconv.Itoa(dy+1)
 	}
-	return fmt.Sprintf("%04d", y)
+	return strconv.Itoa(y)
 }
 
 func (c Calendar) String() string {
