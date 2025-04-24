@@ -1,6 +1,9 @@
 package gdate
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type Calendar int
 
@@ -33,6 +36,21 @@ func (c Calendar) JulianDay(y, m, d int) int {
 	}
 }
 
+// FmtYear formats the year as a string according to the calendar convention.
+// The Julian25Mar calendar returns years of the form 1754/5 for dates
+// before March 25th
+func (c Calendar) FmtYear(y, m, d int) string {
+	if c == Julian25Mar && (m == 1 || m == 2 || (m == 3 && d < 25)) {
+		dy := y % 10
+		if dy < 9 {
+			return fmt.Sprintf("%04d", y) + "/" + strconv.Itoa(dy+1)
+		}
+		dy = y % 100
+		return fmt.Sprintf("%04d", y) + "/" + strconv.Itoa(dy+1)
+	}
+	return fmt.Sprintf("%04d", y)
+}
+
 func (c Calendar) String() string {
 	switch c {
 	case Gregorian:
@@ -60,22 +78,26 @@ type ReckoningLocation int
 
 const (
 	// TODO: non-English reckonings
-	ReckoningLocationNone ReckoningLocation = 0
-	EnglandAndWales       ReckoningLocation = 1
-	Scotland              ReckoningLocation = 2
-	Ireland               ReckoningLocation = 3
+	ReckoningLocationNone            ReckoningLocation = 0
+	ReckoningLocationEnglandAndWales ReckoningLocation = 1
+	ReckoningLocationScotland        ReckoningLocation = 2
+	ReckoningLocationIreland         ReckoningLocation = 3
 )
 
 // StartOfYear returns calendar in use for the year specified.
 func (r ReckoningLocation) Calendar(y int) Calendar {
 	switch r {
-	case EnglandAndWales, Ireland:
+	case ReckoningLocationNone:
+		return Gregorian
+	case ReckoningLocationEnglandAndWales, ReckoningLocationIreland:
+		// Simplification here since the Gregorian calendar was not adopted until
+		// 2 Sep 1752
 		if y < 1752 {
 			// note that 2 Sep 1752 is immediately followed by 14 Sep 1752
 			return Julian25Mar
 		}
 		return Gregorian
-	case Scotland:
+	case ReckoningLocationScotland:
 		if y < 1600 {
 			return Julian25Mar
 		} else if y < 1752 {

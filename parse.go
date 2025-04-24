@@ -302,6 +302,5 @@ func (p *Parser) calendar(yr int) Calendar {
 	if p.ReckoningLocation == ReckoningLocationNone {
 		return p.Calendar
 	}
-
 	return p.ReckoningLocation.Calendar(yr)
 }

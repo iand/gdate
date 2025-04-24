@@ -108,11 +108,11 @@ type Precise struct {
 }
 
 func (p *Precise) String() string {
-	return fmt.Sprintf("%d %s %04d", p.D, shortMonthNames[p.M], p.Y)
+	return fmt.Sprintf("%d %s %s", p.D, shortMonthNames[p.M], p.C.FmtYear(p.Y, p.M, p.D))
 }
 
 func (p *Precise) Occurrence() string {
-	return fmt.Sprintf("on %d %s, %04d", p.D, shortMonthNames[p.M], p.Y)
+	return fmt.Sprintf("on %d %s, %s", p.D, shortMonthNames[p.M], p.C.FmtYear(p.Y, p.M, p.D))
 }
 
 func (p *Precise) Year() int {
