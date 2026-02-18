@@ -204,6 +204,78 @@ func (m *MonthYear) LatestJulianDay() int {
 	return m.C.JulianDay(m.Y, m.M, 31)
 }
 
+// BeforePrecise represents a date that is before a specific day.
+type BeforePrecise struct {
+	C Calendar
+	Y int
+	M int
+	D int
+}
+
+func (b *BeforePrecise) String() string {
+	return fmt.Sprintf("bef. %d %s %04d", b.D, shortMonthNames[b.M], b.Y)
+}
+
+func (b *BeforePrecise) Occurrence() string {
+	return fmt.Sprintf("before %d %s %04d", b.D, shortMonthNames[b.M], b.Y)
+}
+
+func (b *BeforePrecise) julianDay() int { return b.C.JulianDay(b.Y, b.M, b.D) }
+
+func (b *BeforePrecise) SortsBefore(d Date) bool {
+	if cd, ok := d.(ComparableDate); ok {
+		return b.julianDay() <= cd.EarliestJulianDay()
+	}
+	if by, ok := d.(*BeforeYear); ok {
+		return b.Y < by.Y
+	}
+	if ay, ok := d.(*AfterYear); ok {
+		return b.Y <= ay.Y
+	}
+	if _, ok := d.(*Unknown); ok {
+		return true
+	}
+	return false
+}
+
+func (b *BeforePrecise) Calendar() Calendar { return b.C }
+
+// AfterPrecise represents a date that is after a specific day.
+type AfterPrecise struct {
+	C Calendar
+	Y int
+	M int
+	D int
+}
+
+func (a *AfterPrecise) String() string {
+	return fmt.Sprintf("aft. %d %s %04d", a.D, shortMonthNames[a.M], a.Y)
+}
+
+func (a *AfterPrecise) Occurrence() string {
+	return fmt.Sprintf("after %d %s %04d", a.D, shortMonthNames[a.M], a.Y)
+}
+
+func (a *AfterPrecise) julianDay() int { return a.C.JulianDay(a.Y, a.M, a.D) }
+
+func (a *AfterPrecise) SortsBefore(d Date) bool {
+	if cd, ok := d.(ComparableDate); ok {
+		return a.julianDay() < cd.EarliestJulianDay()
+	}
+	if by, ok := d.(*BeforeYear); ok {
+		return a.Y < by.Y
+	}
+	if ay, ok := d.(*AfterYear); ok {
+		return a.Y < ay.Y
+	}
+	if _, ok := d.(*Unknown); ok {
+		return true
+	}
+	return false
+}
+
+func (a *AfterPrecise) Calendar() Calendar { return a.C }
+
 // BeforeYear represents a date that is before the start of a specific year.
 // It sorts before any date with that year.
 type BeforeYear struct {
@@ -471,6 +543,71 @@ var longMonthNames = []string{
 	10: "October",
 	11: "November",
 	12: "December",
+}
+
+// BetweenPrecise represents a date that falls between two specific days, inclusive.
+type BetweenPrecise struct {
+	C          Calendar
+	StartYear  int
+	StartMonth int
+	StartDay   int
+	EndYear    int
+	EndMonth   int
+	EndDay     int
+}
+
+func (b *BetweenPrecise) String() string {
+	return fmt.Sprintf("%d %s %04d-%d %s %04d",
+		b.StartDay, shortMonthNames[b.StartMonth], b.StartYear,
+		b.EndDay, shortMonthNames[b.EndMonth], b.EndYear)
+}
+
+func (b *BetweenPrecise) Occurrence() string {
+	return fmt.Sprintf("between %d %s %04d and %d %s %04d",
+		b.StartDay, shortMonthNames[b.StartMonth], b.StartYear,
+		b.EndDay, shortMonthNames[b.EndMonth], b.EndYear)
+}
+
+func (b *BetweenPrecise) Calendar() Calendar { return b.C }
+
+func (b *BetweenPrecise) EarliestJulianDay() int {
+	return b.C.JulianDay(b.StartYear, b.StartMonth, b.StartDay)
+}
+
+func (b *BetweenPrecise) LatestJulianDay() int {
+	return b.C.JulianDay(b.EndYear, b.EndMonth, b.EndDay)
+}
+
+// MonthYearRange represents a span from one month-year to another, including both endpoints.
+type MonthYearRange struct {
+	C          Calendar
+	LowerYear  int
+	LowerMonth int
+	UpperYear  int
+	UpperMonth int
+}
+
+func (m *MonthYearRange) String() string {
+	return fmt.Sprintf("%s %04d-%s %04d", shortMonthNames[m.LowerMonth], m.LowerYear, shortMonthNames[m.UpperMonth], m.UpperYear)
+}
+
+func (m *MonthYearRange) Occurrence() string {
+	return fmt.Sprintf("between %s %04d and %s %04d", shortMonthNames[m.LowerMonth], m.LowerYear, shortMonthNames[m.UpperMonth], m.UpperYear)
+}
+
+func (m *MonthYearRange) Calendar() Calendar {
+	return m.C
+}
+
+func (m *MonthYearRange) EarliestJulianDay() int {
+	return m.C.JulianDay(m.LowerYear, m.LowerMonth, 1)
+}
+
+func (m *MonthYearRange) LatestJulianDay() int {
+	if m.UpperMonth < 12 {
+		return m.C.JulianDay(m.UpperYear, m.UpperMonth+1, 1) - 1
+	}
+	return m.C.JulianDay(m.UpperYear, m.UpperMonth, 31)
 }
 
 // YearRange represents a date that is within the range of two years, including the upper and lower year.
