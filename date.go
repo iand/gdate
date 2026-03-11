@@ -116,6 +116,11 @@ func (p *Precise) Occurrence() string {
 }
 
 func (p *Precise) Year() int {
+	// For Julian25Mar (Old Style) calendar, dates in Jan, Feb, or before 25 Mar use
+	// the prior year as the OS year. Return the New Style year for year-only contexts.
+	if p.C == Julian25Mar && (p.M == 1 || p.M == 2 || (p.M == 3 && p.D < 25)) {
+		return p.Y + 1
+	}
 	return p.Y
 }
 
@@ -186,6 +191,11 @@ func (m *MonthYear) Occurrence() string {
 }
 
 func (m *MonthYear) Year() int {
+	// For Julian25Mar (Old Style) calendar, Jan and Feb use the prior OS year.
+	// Return the New Style year for year-only contexts.
+	if m.C == Julian25Mar && (m.M == 1 || m.M == 2) {
+		return m.Y + 1
+	}
 	return m.Y
 }
 

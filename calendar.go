@@ -1,6 +1,7 @@
 package gdate
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -19,14 +20,18 @@ func (c Calendar) JulianDay(y, m, d int) int {
 		c := 2 - a + b
 		e := int(365.25 * float64(y+4716))
 		f := int(30.6001 * float64(m+1))
-		return int(float64(c+d+e+f) - 1524.5)
+		// The Meeus formula yields a Julian Date at noon, so c+d+e+f is always
+		// an integer N and the true JD = N - 1524.5 (a half-integer). We want
+		// the integer Julian Day Number (JDN), which by convention equals the
+		// JD at noon, i.e. N - 1524. Using int(float64(N) - 1524.5) would
+		// truncate the .5 and return N - 1525, which is off by one.
+		return c + d + e + f - 1524
 	case Julian:
 		return 367*y - (7*(y+5001+(m-9)/7))/4 + (275*m)/9 + d + 1729777
 	case Julian25Mar:
+		// OS dates in Jan, Feb, or before 25 Mar belong to the next Julian calendar year.
 		if m == 1 || m == 2 || (m == 3 && d < 25) {
-			y--
-			m += 12
-			d--
+			y++
 		}
 
 		return 367*y - (7*(y+5001+(m-9)/7))/4 + (275*m)/9 + d + 1729777
@@ -37,16 +42,11 @@ func (c Calendar) JulianDay(y, m, d int) int {
 }
 
 // FmtYear formats the year as a string according to the calendar convention.
-// The Julian25Mar calendar returns years of the form 1754/5 for dates
-// before March 25th
+// The Julian25Mar calendar returns years of the form 1650/51 for dates
+// before March 25th, showing the OS year and the last two digits of the NS year.
 func (c Calendar) FmtYear(y, m, d int) string {
 	if c == Julian25Mar && (m == 1 || m == 2 || (m == 3 && d < 25)) {
-		dy := y % 10
-		if dy < 9 {
-			return strconv.Itoa(y) + "/" + strconv.Itoa(dy+1)
-		}
-		dy = y % 100
-		return strconv.Itoa(y) + "/" + strconv.Itoa(dy+1)
+		return fmt.Sprintf("%d/%02d", y, (y+1)%100)
 	}
 	return strconv.Itoa(y)
 }
